@@ -5,6 +5,7 @@ from torch import nn, optim
 
 from AverageBaseline import AverageBaseline
 from SNLIBatchGenerator import SNLIBatchGenerator
+from UniLSTM import UniLSTM
 
 
 def get_accuracy(scores, true_labels):
@@ -28,8 +29,8 @@ if __name__ == '__main__':
     glove = torchtext.vocab.Vectors(name='glove.840B.300d.txt', max_vectors=100000)
 
     train_set, valid_set, _ = torchtext.datasets.SNLI.splits(TEXT, LABEL)
-    # train_set.examples = train_set.examples[0:5000]
-    # valid_set.examples = valid_set.examples[0:5000]
+    train_set.examples = train_set.examples[0:5000]
+    valid_set.examples = valid_set.examples[0:5000]
     TEXT.build_vocab(train_set, valid_set, vectors=glove)
     LABEL.build_vocab(train_set)
 
@@ -42,16 +43,18 @@ if __name__ == '__main__':
     valid_batch_loader = SNLIBatchGenerator(valid_iter)
 
     vocab_size = len(TEXT.vocab)
-    baseline_model = AverageBaseline(vocab_size, 300, 512, 3, TEXT.vocab.vectors).to(device)
-    optimizer = optim.SGD(filter(lambda p: p.requires_grad, baseline_model.parameters()), lr=0.0001, weight_decay=0.99)
+    model = AverageBaseline(vocab_size, 300, 512, 3, TEXT.vocab.vectors).to(device)
+    # model = UniLSTM(vocab_size, 300, 512, 3, TEXT.vocab.vectors).to(device)
+    optimizer = optim.SGD(filter(lambda p: p.requires_grad, model.parameters()), lr=0.0001, weight_decay=0.99)
     cross_entropy_loss = nn.CrossEntropyLoss()
 
     for epoch in range(1, train_epochs + 1):
+        model.train()
         loss_in_epoch = 0
         train_accuracy = 0
         print("Epoch %d/%d:" % (epoch, train_epochs))
         for batch_id, (premise, hypothesis, label) in enumerate(train_batch_loader):
-            out = baseline_model(premise, hypothesis)
+            out = model(premise, hypothesis)
             loss = cross_entropy_loss(out, label)
             optimizer.zero_grad()
             loss.backward()
@@ -62,12 +65,13 @@ if __name__ == '__main__':
         train_accuracy /= batch_id
 
         if epoch % eval_period == 0:
+            model.eval()
             valid_accuracy = 0
             with torch.no_grad():
                 for batch_id, (premise, hypothesis, label) in enumerate(valid_batch_loader):
-                    out = baseline_model(premise, hypothesis)
+                    out = model(premise, hypothesis)
                     valid_accuracy += get_accuracy(out, label)
                 valid_accuracy /= batch_id
-            print("Train accuracy = %f, valid accuracy = %f" %(train_accuracy, valid_accuracy))
+            print("train loss = %f, train accuracy = %f, valid accuracy = %f" % (loss_in_epoch, train_accuracy, valid_accuracy))
         else:
-            print("Train accuracy = %f" % train_accuracy)
+            print("train loss = %f, train accuracy = %f" % (loss_in_epoch, train_accuracy))

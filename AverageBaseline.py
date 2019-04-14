@@ -3,18 +3,20 @@ from torch import nn
 
 class AverageBaseline(nn.Module):
 
-    def __init__(self, vocab_size, embedding_dim, hidden_dim, num_classes, pretrained_vectors):
+    def __init__(self, vocab_size, embedding_dim, fc_dim, num_classes, pretrained_vectors):
         super(AverageBaseline, self).__init__()
         self.vocab_size = vocab_size
         self.embedding_dim = embedding_dim
         self.embedding = nn.Embedding(vocab_size, embedding_dim)
         self.embedding.weight.data.copy_(pretrained_vectors)
         self.embedding.requires_grad = False
-        self.hidden_dim = hidden_dim
+        self.fc_dim = fc_dim
         self.num_classes = num_classes
-        self.fc = nn.Sequential(nn.Linear(4 * embedding_dim, hidden_dim),
-                                nn.ReLU(),
-                                nn.Linear(hidden_dim, num_classes))
+        self.fc = nn.Sequential(nn.Linear(4 * embedding_dim, fc_dim),
+                                nn.Tanh(),
+                                nn.Linear(fc_dim,fc_dim),
+                                nn.Tanh(),
+                                nn.Linear(fc_dim, num_classes))
 
     def forward(self, s1, s2):
         embed_u = self.embedding(s1)
