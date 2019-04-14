@@ -1,3 +1,4 @@
+import os
 import torch
 import torchtext
 from torchtext.data import Field, BucketIterator
@@ -5,7 +6,6 @@ from torch import nn, optim
 import argparse
 from SNLIBatchGenerator import SNLIBatchGenerator
 from SNLIClassifier import SNLIClassifier
-
 
 # Default parameters
 LEARNING_RATE_DEFAULT = 0.1
@@ -57,22 +57,35 @@ def train_model():
                           lr=args.learning_rate, weight_decay=args.weight_decay)
     cross_entropy_loss = nn.CrossEntropyLoss()
 
+    # Load the checkpoint if found
+    checkpoint_file_path = os.path.join(args.checkpoint_path, args.model_name)
+    if os.path.isfile(checkpoint_file_path):
+        checkpoint = torch.load(checkpoint_file_path)
+        model.load_state_dict(checkpoint['model_state_dict'])
+        optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        start_epoch = checkpoint['epoch'] + 1
+        print("Resuming training from epoch %d with loaded model and optimizer..." % start_epoch)
+    else:
+        start_epoch = 1
+        print("Training the model from scratch...")
+
+    # Begin training
     prev_valid_accuracy = 0
-    finished_training = False
-    for epoch in range(1, args.max_epochs + 1):
+    terminate_training = False
+    for epoch in range(start_epoch, args.max_epochs + 1):
         model.train()
-        loss_in_epoch = 0
+        train_loss = 0
         train_accuracy = 0
-        print("Epoch %d/%d:" % (epoch, args.max_epochs))
+        print("Epoch %d:" % epoch)
         for batch_id, (premise, hypothesis, label) in enumerate(train_batch_loader):
             out = model(premise, hypothesis)
             loss = cross_entropy_loss(out, label)
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-            loss_in_epoch += loss.detach().item()
+            train_loss += loss.detach().item()
             train_accuracy += get_accuracy(out, label)
-        loss_in_epoch /= batch_id
+        train_loss /= batch_id
         train_accuracy /= batch_id
 
         model.eval()
@@ -83,26 +96,47 @@ def train_model():
                 valid_accuracy += get_accuracy(out, label)
             valid_accuracy /= batch_id
         print("train loss = %f, train accuracy = %f, valid accuracy = %f" % (
-        loss_in_epoch, train_accuracy, valid_accuracy))
+            train_loss, train_accuracy, valid_accuracy))
 
+        # Save the state
+        if not os.path.exists(args.checkpoint_path):
+            try:
+                os.makedirs(args.checkpoint_path)
+            except OSError:
+                print("Failed to create directory %s" % args.checkpoint_path)
+        torch.save({
+            'epoch': epoch,
+            'model_state_dict': model.state_dict(),
+            'optimizer_state_dict': optimizer.state_dict()
+        }, checkpoint_file_path)
+
+        # If validation accuracy does not improve, divide the learning rate by 5 and
+        # if learning rate falls below 1e-5 terminate training
         if valid_accuracy <= prev_valid_accuracy:
             for param_group in optimizer.param_groups:
                 if param_group['lr'] < 1e-5:
-                    finished_training = True
+                    terminate_training = True
                     break
                 param_group['lr'] /= 5
         prev_valid_accuracy = valid_accuracy
-
-        if finished_training:
+        if terminate_training:
             break
 
-    print("Finished training")
+    # Termination message
+    if terminate_training:
+        print("Training terminated because the learning rate fell below %f" % 1e-5)
+    else:
+        print("Maximum epochs reached. Finished training")
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('model_type', choices={'average', 'uniLSTM', 'biLSTM', 'biLSTMmaxpool'},
                         help='Type of encoder for the sentences')
+    parser.add_argument('model_name', type=str,
+                        help='Name of the model')
+    parser.add_argument('checkpoint_path', type=str,
+                        help='Path to save/load the checkpoint data')
     parser.add_argument('--learning_rate', type=float, default=LEARNING_RATE_DEFAULT,
                         help='Learning rate')
     parser.add_argument('--max_epochs', type=int, default=MAX_EPOCHS_DEFAULT,
@@ -111,7 +145,7 @@ if __name__ == '__main__':
                         help='Batch size for training the model')
     parser.add_argument('--glove_size', type=int, default=GLOVE_SIZE_DEFAULT,
                         help='Number of GloVe vectors to load initially')
-    parser.add_argument('--weight_decay', type=int, default=WEIGHT_DECAY_DEFAULT,
+    parser.add_argument('--weight_decay', type=float, default=WEIGHT_DECAY_DEFAULT,
                         help='Weight decay for the optimizer')
     args = parser.parse_args()
 

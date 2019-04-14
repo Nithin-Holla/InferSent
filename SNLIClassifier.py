@@ -12,9 +12,8 @@ class SNLIClassifier(nn.Module):
     def __init__(self, encoder, vocab_size, embedding_dim, hidden_dim, fc_dim, num_classes, pretrained_vectors):
         super(SNLIClassifier, self).__init__()
         if encoder == 'average':
-            assert embedding_dim == hidden_dim
             self.encoder = AverageBaseline(vocab_size, embedding_dim, pretrained_vectors)
-            self.hidden_dim = hidden_dim
+            self.hidden_dim = embedding_dim
         elif encoder == 'uniLSTM':
             self.encoder = UniLSTM(vocab_size, embedding_dim, hidden_dim, pretrained_vectors)
             self.hidden_dim = hidden_dim
