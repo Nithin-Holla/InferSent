@@ -2,10 +2,16 @@ import torch
 import torchtext
 from torchtext.data import Field, BucketIterator
 from torch import nn, optim
-
-from AverageBaseline import AverageBaseline
+import argparse
 from SNLIBatchGenerator import SNLIBatchGenerator
-from UniLSTM import UniLSTM
+from classifier import SNLIClassifier
+
+# Default parameters
+LEARNING_RATE_DEFAULT = 0.1
+BATCH_SIZE_DEFAULT = 64
+MAX_EPOCHS_DEFAULT = 100
+GLOVE_SIZE_DEFAULT = 1000000
+WEIGHT_DECAY_DEFAULT = 0.01
 
 
 def get_accuracy(scores, true_labels):
@@ -14,29 +20,26 @@ def get_accuracy(scores, true_labels):
     return accuracy
 
 
-if __name__ == '__main__':
+def train_model():
 
     torch.manual_seed(42)
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    train_epochs = 100
-    eval_period = 10
     # glove_file = 'F:\\Academics\\UvA\\Period 5\\SMNLS\\Practical\\InferSent\\.vector_cache\\glove.840B.300d.txt'
 
     tokenize = lambda x: x.split()
     TEXT = Field(sequential=True, tokenize=tokenize, lower=True, use_vocab=True, batch_first=False)
     LABEL = Field(sequential=False, use_vocab=True, pad_token=None, unk_token=None, batch_first=False)
 
-    glove = torchtext.vocab.Vectors(name='glove.840B.300d.txt', max_vectors=1000000)
-    # glove = torchtext.vocab.Vectors(name='small_glove_embed.npy')
+    glove_vectors = torchtext.vocab.Vectors(name='glove.840B.300d.txt', max_vectors=args.glove_size)
 
     train_set, valid_set, _ = torchtext.datasets.SNLI.splits(TEXT, LABEL)
     train_set.examples = train_set.examples[0:5000]
     valid_set.examples = valid_set.examples[0:5000]
-    TEXT.build_vocab(train_set, valid_set, vectors=glove)
+    TEXT.build_vocab(train_set, valid_set, vectors=glove_vectors)
     LABEL.build_vocab(train_set)
 
     train_iter, valid_iter = BucketIterator.splits(datasets=(train_set, valid_set),
-                                                   batch_sizes=(64, 64),
+                                                   batch_sizes=(args.batch_size, args.batch_size),
                                                    sort_key=None,
                                                    device=device)
 
@@ -44,18 +47,24 @@ if __name__ == '__main__':
     valid_batch_loader = SNLIBatchGenerator(valid_iter)
 
     vocab_size = len(TEXT.vocab)
-    model = AverageBaseline(vocab_size, 300, 512, 3, TEXT.vocab.vectors).to(device)
-    # model = UniLSTM(vocab_size, 300, 512, 3, TEXT.vocab.vectors).to(device)
-    optimizer = optim.SGD(filter(lambda p: p.requires_grad, model.parameters()), lr=0.1, weight_decay=0.01)
+    model = SNLIClassifier(encoder='average',
+                           vocab_size=vocab_size,
+                           embedding_dim=300,
+                           hidden_dim=300,
+                           fc_dim=512,
+                           num_classes=3,
+                           pretrained_vectors=TEXT.vocab.vectors).to(device)
+    optimizer = optim.SGD(filter(lambda p: p.requires_grad, model.parameters()),
+                          lr=args.learning_rate, weight_decay=args.weight_decay)
     cross_entropy_loss = nn.CrossEntropyLoss()
 
     prev_valid_accuracy = 0
     finished_training = False
-    for epoch in range(1, train_epochs + 1):
+    for epoch in range(1, args.max_epochs + 1):
         model.train()
         loss_in_epoch = 0
         train_accuracy = 0
-        print("Epoch %d/%d:" % (epoch, train_epochs))
+        print("Epoch %d/%d:" % (epoch, args.max_epochs))
         for batch_id, (premise, hypothesis, label) in enumerate(train_batch_loader):
             out = model(premise, hypothesis)
             loss = cross_entropy_loss(out, label)
@@ -88,3 +97,20 @@ if __name__ == '__main__':
             break
 
     print("Finished training")
+
+
+if __name__ == '__main__':
+  parser = argparse.ArgumentParser()
+  parser.add_argument('--learning_rate', type = float, default = LEARNING_RATE_DEFAULT,
+                      help='Learning rate')
+  parser.add_argument('--max_epochs', type = int, default = MAX_EPOCHS_DEFAULT,
+                      help='Maximum number of epochs to train the model')
+  parser.add_argument('--batch_size', type = int, default = BATCH_SIZE_DEFAULT,
+                      help='Batch size for training the model')
+  parser.add_argument('--glove_size', type=int, default=GLOVE_SIZE_DEFAULT,
+                      help='Number of GloVe vectors to load initially')
+  parser.add_argument('--weight_decay', type=int, default=WEIGHT_DECAY_DEFAULT,
+                      help='Weight decay for the optimizer')
+  args, unparsed = parser.parse_known_args()
+
+  train_model()
