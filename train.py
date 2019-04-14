@@ -4,7 +4,8 @@ from torchtext.data import Field, BucketIterator
 from torch import nn, optim
 import argparse
 from SNLIBatchGenerator import SNLIBatchGenerator
-from classifier import SNLIClassifier
+from SNLIClassifier import SNLIClassifier
+
 
 # Default parameters
 LEARNING_RATE_DEFAULT = 0.1
@@ -21,10 +22,8 @@ def get_accuracy(scores, true_labels):
 
 
 def train_model():
-
     torch.manual_seed(42)
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    # glove_file = 'F:\\Academics\\UvA\\Period 5\\SMNLS\\Practical\\InferSent\\.vector_cache\\glove.840B.300d.txt'
 
     tokenize = lambda x: x.split()
     TEXT = Field(sequential=True, tokenize=tokenize, lower=True, use_vocab=True, batch_first=False)
@@ -33,8 +32,8 @@ def train_model():
     glove_vectors = torchtext.vocab.Vectors(name='glove.840B.300d.txt', max_vectors=args.glove_size)
 
     train_set, valid_set, _ = torchtext.datasets.SNLI.splits(TEXT, LABEL)
-    train_set.examples = train_set.examples[0:5000]
-    valid_set.examples = valid_set.examples[0:5000]
+    # train_set.examples = train_set.examples[0:1000]
+    # valid_set.examples = valid_set.examples[0:1000]
     TEXT.build_vocab(train_set, valid_set, vectors=glove_vectors)
     LABEL.build_vocab(train_set)
 
@@ -47,10 +46,10 @@ def train_model():
     valid_batch_loader = SNLIBatchGenerator(valid_iter)
 
     vocab_size = len(TEXT.vocab)
-    model = SNLIClassifier(encoder='average',
+    model = SNLIClassifier(encoder=args.model_type,
                            vocab_size=vocab_size,
                            embedding_dim=300,
-                           hidden_dim=300,
+                           hidden_dim=2048,
                            fc_dim=512,
                            num_classes=3,
                            pretrained_vectors=TEXT.vocab.vectors).to(device)
@@ -83,7 +82,8 @@ def train_model():
                 out = model(premise, hypothesis)
                 valid_accuracy += get_accuracy(out, label)
             valid_accuracy /= batch_id
-        print("train loss = %f, train accuracy = %f, valid accuracy = %f" % (loss_in_epoch, train_accuracy, valid_accuracy))
+        print("train loss = %f, train accuracy = %f, valid accuracy = %f" % (
+        loss_in_epoch, train_accuracy, valid_accuracy))
 
         if valid_accuracy <= prev_valid_accuracy:
             for param_group in optimizer.param_groups:
@@ -100,17 +100,19 @@ def train_model():
 
 
 if __name__ == '__main__':
-  parser = argparse.ArgumentParser()
-  parser.add_argument('--learning_rate', type = float, default = LEARNING_RATE_DEFAULT,
-                      help='Learning rate')
-  parser.add_argument('--max_epochs', type = int, default = MAX_EPOCHS_DEFAULT,
-                      help='Maximum number of epochs to train the model')
-  parser.add_argument('--batch_size', type = int, default = BATCH_SIZE_DEFAULT,
-                      help='Batch size for training the model')
-  parser.add_argument('--glove_size', type=int, default=GLOVE_SIZE_DEFAULT,
-                      help='Number of GloVe vectors to load initially')
-  parser.add_argument('--weight_decay', type=int, default=WEIGHT_DECAY_DEFAULT,
-                      help='Weight decay for the optimizer')
-  args, unparsed = parser.parse_known_args()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('model_type', choices={'average', 'uniLSTM', 'biLSTM'},
+                        help='Type of encoder for the sentences')
+    parser.add_argument('--learning_rate', type=float, default=LEARNING_RATE_DEFAULT,
+                        help='Learning rate')
+    parser.add_argument('--max_epochs', type=int, default=MAX_EPOCHS_DEFAULT,
+                        help='Maximum number of epochs to train the model')
+    parser.add_argument('--batch_size', type=int, default=BATCH_SIZE_DEFAULT,
+                        help='Batch size for training the model')
+    parser.add_argument('--glove_size', type=int, default=GLOVE_SIZE_DEFAULT,
+                        help='Number of GloVe vectors to load initially')
+    parser.add_argument('--weight_decay', type=int, default=WEIGHT_DECAY_DEFAULT,
+                        help='Weight decay for the optimizer')
+    args = parser.parse_args()
 
-  train_model()
+    train_model()
