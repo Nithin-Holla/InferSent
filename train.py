@@ -26,11 +26,12 @@ if __name__ == '__main__':
     TEXT = Field(sequential=True, tokenize=tokenize, lower=True, use_vocab=True, batch_first=False)
     LABEL = Field(sequential=False, use_vocab=True, pad_token=None, unk_token=None, batch_first=False)
 
-    glove = torchtext.vocab.Vectors(name='glove.840B.300d.txt', max_vectors=100000)
+    glove = torchtext.vocab.Vectors(name='glove.840B.300d.txt', max_vectors=1000000)
+    # glove = torchtext.vocab.Vectors(name='small_glove_embed.npy')
 
     train_set, valid_set, _ = torchtext.datasets.SNLI.splits(TEXT, LABEL)
-    # train_set.examples = train_set.examples[0:5000]
-    # valid_set.examples = valid_set.examples[0:5000]
+    train_set.examples = train_set.examples[0:5000]
+    valid_set.examples = valid_set.examples[0:5000]
     TEXT.build_vocab(train_set, valid_set, vectors=glove)
     LABEL.build_vocab(train_set)
 
@@ -48,6 +49,8 @@ if __name__ == '__main__':
     optimizer = optim.SGD(filter(lambda p: p.requires_grad, model.parameters()), lr=0.1, weight_decay=0.01)
     cross_entropy_loss = nn.CrossEntropyLoss()
 
+    prev_valid_accuracy = 0
+    finished_training = False
     for epoch in range(1, train_epochs + 1):
         model.train()
         loss_in_epoch = 0
@@ -64,14 +67,24 @@ if __name__ == '__main__':
         loss_in_epoch /= batch_id
         train_accuracy /= batch_id
 
-        if epoch % eval_period == 0:
-            model.eval()
-            valid_accuracy = 0
-            with torch.no_grad():
-                for batch_id, (premise, hypothesis, label) in enumerate(valid_batch_loader):
-                    out = model(premise, hypothesis)
-                    valid_accuracy += get_accuracy(out, label)
-                valid_accuracy /= batch_id
-            print("train loss = %f, train accuracy = %f, valid accuracy = %f" % (loss_in_epoch, train_accuracy, valid_accuracy))
-        else:
-            print("train loss = %f, train accuracy = %f" % (loss_in_epoch, train_accuracy))
+        model.eval()
+        valid_accuracy = 0
+        with torch.no_grad():
+            for batch_id, (premise, hypothesis, label) in enumerate(valid_batch_loader):
+                out = model(premise, hypothesis)
+                valid_accuracy += get_accuracy(out, label)
+            valid_accuracy /= batch_id
+        print("train loss = %f, train accuracy = %f, valid accuracy = %f" % (loss_in_epoch, train_accuracy, valid_accuracy))
+
+        if valid_accuracy <= prev_valid_accuracy:
+            for param_group in optimizer.param_groups:
+                if param_group['lr'] < 1e-5:
+                    finished_training = True
+                    break
+                param_group['lr'] /= 5
+        prev_valid_accuracy = valid_accuracy
+
+        if finished_training:
+            break
+
+    print("Finished training")
