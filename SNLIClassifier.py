@@ -2,6 +2,7 @@ import torch
 from torch import nn
 
 from AverageBaseline import AverageBaseline
+from BiLSTMMaxPool import BiLSTMMaxPool
 from UniLSTM import UniLSTM
 from BiLSTM import BiLSTM
 
@@ -20,14 +21,15 @@ class SNLIClassifier(nn.Module):
         elif encoder == 'biLSTM':
             self.encoder = BiLSTM(vocab_size, embedding_dim, hidden_dim, pretrained_vectors)
             self.hidden_dim = 2 * hidden_dim
+        elif encoder == 'biLSTMmaxpool':
+            self.encoder = BiLSTMMaxPool(vocab_size, embedding_dim, hidden_dim, pretrained_vectors)
+            self.hidden_dim = 2 * hidden_dim
         else:
             raise ValueError('The encoder type is not supported')
         self.fc_dim = fc_dim
         self.num_classes = num_classes
         self.fc = nn.Sequential(nn.Linear(4 * self.hidden_dim, self.fc_dim),
                                 nn.Tanh(),
-                                # nn.Linear(fc_dim,fc_dim),
-                                # nn.Tanh(),
                                 nn.Linear(self.fc_dim, self.num_classes))
 
     def forward(self, s1, s2):

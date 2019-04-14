@@ -32,8 +32,8 @@ def train_model():
     glove_vectors = torchtext.vocab.Vectors(name='glove.840B.300d.txt', max_vectors=args.glove_size)
 
     train_set, valid_set, _ = torchtext.datasets.SNLI.splits(TEXT, LABEL)
-    # train_set.examples = train_set.examples[0:1000]
-    # valid_set.examples = valid_set.examples[0:1000]
+    # train_set.examples = train_set.examples[0:100]
+    # valid_set.examples = valid_set.examples[0:100]
     TEXT.build_vocab(train_set, valid_set, vectors=glove_vectors)
     LABEL.build_vocab(train_set)
 
@@ -101,7 +101,7 @@ def train_model():
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('model_type', choices={'average', 'uniLSTM', 'biLSTM'},
+    parser.add_argument('model_type', choices={'average', 'uniLSTM', 'biLSTM', 'biLSTMmaxpool'},
                         help='Type of encoder for the sentences')
     parser.add_argument('--learning_rate', type=float, default=LEARNING_RATE_DEFAULT,
                         help='Learning rate')
