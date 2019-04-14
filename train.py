@@ -29,8 +29,8 @@ if __name__ == '__main__':
     glove = torchtext.vocab.Vectors(name='glove.840B.300d.txt', max_vectors=100000)
 
     train_set, valid_set, _ = torchtext.datasets.SNLI.splits(TEXT, LABEL)
-    train_set.examples = train_set.examples[0:5000]
-    valid_set.examples = valid_set.examples[0:5000]
+    # train_set.examples = train_set.examples[0:5000]
+    # valid_set.examples = valid_set.examples[0:5000]
     TEXT.build_vocab(train_set, valid_set, vectors=glove)
     LABEL.build_vocab(train_set)
 
@@ -45,7 +45,7 @@ if __name__ == '__main__':
     vocab_size = len(TEXT.vocab)
     model = AverageBaseline(vocab_size, 300, 512, 3, TEXT.vocab.vectors).to(device)
     # model = UniLSTM(vocab_size, 300, 512, 3, TEXT.vocab.vectors).to(device)
-    optimizer = optim.SGD(filter(lambda p: p.requires_grad, model.parameters()), lr=0.0001, weight_decay=0.99)
+    optimizer = optim.SGD(filter(lambda p: p.requires_grad, model.parameters()), lr=0.1, weight_decay=0.01)
     cross_entropy_loss = nn.CrossEntropyLoss()
 
     for epoch in range(1, train_epochs + 1):
@@ -59,7 +59,7 @@ if __name__ == '__main__':
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-            loss_in_epoch += loss
+            loss_in_epoch += loss.detach().item()
             train_accuracy += get_accuracy(out, label)
         loss_in_epoch /= batch_id
         train_accuracy /= batch_id

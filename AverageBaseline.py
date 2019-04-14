@@ -14,15 +14,15 @@ class AverageBaseline(nn.Module):
         self.num_classes = num_classes
         self.fc = nn.Sequential(nn.Linear(4 * embedding_dim, fc_dim),
                                 nn.Tanh(),
-                                nn.Linear(fc_dim,fc_dim),
-                                nn.Tanh(),
+                                # nn.Linear(fc_dim,fc_dim),
+                                # nn.Tanh(),
                                 nn.Linear(fc_dim, num_classes))
 
     def forward(self, s1, s2):
-        embed_u = self.embedding(s1)
-        embed_v = self.embedding(s2)
-        avg_embed_u = torch.mean(embed_u, dim=0)
-        avg_embed_v = torch.mean(embed_v, dim=0)
+        embed_s1 = self.embedding(s1)
+        embed_s2 = self.embedding(s2)
+        avg_embed_u = torch.mean(embed_s1, dim=0)
+        avg_embed_v = torch.mean(embed_s2, dim=0)
         abs_diff = torch.abs(avg_embed_u - avg_embed_v)
         mult = avg_embed_u * avg_embed_v
         vector = torch.cat((avg_embed_u, avg_embed_v, abs_diff, mult), dim=1)
