@@ -4,14 +4,15 @@ import torchtext
 from torchtext.data import Field, BucketIterator
 from torch import nn, optim
 import argparse
+from tensorboardX import SummaryWriter
 from SNLIBatchGenerator import SNLIBatchGenerator
 from SNLIClassifier import SNLIClassifier
 
 # Default parameters
 LEARNING_RATE_DEFAULT = 0.1
 BATCH_SIZE_DEFAULT = 64
-MAX_EPOCHS_DEFAULT = 100
-GLOVE_SIZE_DEFAULT = 1000000
+MAX_EPOCHS_DEFAULT = 50
+GLOVE_SIZE_DEFAULT = None
 WEIGHT_DECAY_DEFAULT = 0.01
 
 
@@ -25,27 +26,33 @@ def train_model():
     torch.manual_seed(42)
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
+    tb_writer = SummaryWriter(os.path.join('logs', args.model_name))
+
     tokenize = lambda x: x.split()
-    TEXT = Field(sequential=True, tokenize=tokenize, lower=True, use_vocab=True, batch_first=False)
+    TEXT = Field(sequential=True, tokenize=tokenize, lower=True, use_vocab=True, batch_first=False, include_lengths=True)
     LABEL = Field(sequential=False, use_vocab=True, pad_token=None, unk_token=None, batch_first=False)
 
-    glove_vectors = torchtext.vocab.Vectors(name='glove.840B.300d.txt', max_vectors=args.glove_size)
+    glove_vectors = torchtext.vocab.Vectors(name='small_glove.txt', max_vectors=args.glove_size)
 
     train_set, valid_set, _ = torchtext.datasets.SNLI.splits(TEXT, LABEL)
-    # train_set.examples = train_set.examples[0:100]
-    # valid_set.examples = valid_set.examples[0:100]
+    train_set.examples = train_set.examples[0:1000]
+    valid_set.examples = valid_set.examples[0:1000]
     TEXT.build_vocab(train_set, valid_set, vectors=glove_vectors)
     LABEL.build_vocab(train_set)
+    TEXT.vocab.vectors[TEXT.vocab.stoi['<unk>']] = torch.mean(TEXT.vocab.vectors, dim=0)
+    vocab_size = len(TEXT.vocab)
 
+    # Define the iterator over
     train_iter, valid_iter = BucketIterator.splits(datasets=(train_set, valid_set),
                                                    batch_sizes=(args.batch_size, args.batch_size),
-                                                   sort_key=None,
+                                                   sort_key=lambda x: x.premise,
+                                                   shuffle=True,
                                                    device=device)
 
     train_batch_loader = SNLIBatchGenerator(train_iter)
     valid_batch_loader = SNLIBatchGenerator(valid_iter)
 
-    vocab_size = len(TEXT.vocab)
+    # Define the model, the optimizer and the loss module
     model = SNLIClassifier(encoder=args.model_type,
                            vocab_size=vocab_size,
                            embedding_dim=300,
@@ -78,7 +85,7 @@ def train_model():
         train_accuracy = 0
         print("Epoch %d:" % epoch)
         for batch_id, (premise, hypothesis, label) in enumerate(train_batch_loader):
-            out = model(premise, hypothesis)
+            out = model(premise[0], hypothesis[0], premise[1], hypothesis[1])
             loss = cross_entropy_loss(out, label)
             optimizer.zero_grad()
             loss.backward()
@@ -87,14 +94,19 @@ def train_model():
             train_accuracy += get_accuracy(out, label)
         train_loss /= batch_id
         train_accuracy /= batch_id
+        tb_writer.add_scalar('train loss', train_loss, epoch)
+        tb_writer.add_scalar('train accuracy', train_accuracy, epoch)
 
+        # Evaluate the model on the validation set
         model.eval()
         valid_accuracy = 0
         with torch.no_grad():
             for batch_id, (premise, hypothesis, label) in enumerate(valid_batch_loader):
-                out = model(premise, hypothesis)
+                out = model(premise[0], hypothesis[0], premise[1], hypothesis[1])
                 valid_accuracy += get_accuracy(out, label)
             valid_accuracy /= batch_id
+
+        tb_writer.add_scalar('valid accuracy', valid_accuracy, epoch)
         print("train loss = %f, train accuracy = %f, valid accuracy = %f" % (
             train_loss, train_accuracy, valid_accuracy))
 
@@ -128,6 +140,8 @@ def train_model():
     else:
         print("Maximum epochs reached. Finished training")
 
+    tb_writer.close()
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -143,7 +157,7 @@ if __name__ == '__main__':
                         help='Maximum number of epochs to train the model')
     parser.add_argument('--batch_size', type=int, default=BATCH_SIZE_DEFAULT,
                         help='Batch size for training the model')
-    parser.add_argument('--glove_size', type=int, default=GLOVE_SIZE_DEFAULT,
+    parser.add_argument('--glove_size', type=int,
                         help='Number of GloVe vectors to load initially')
     parser.add_argument('--weight_decay', type=float, default=WEIGHT_DECAY_DEFAULT,
                         help='Weight decay for the optimizer')

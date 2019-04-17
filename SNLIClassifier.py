@@ -31,9 +31,9 @@ class SNLIClassifier(nn.Module):
                                 nn.Tanh(),
                                 nn.Linear(self.fc_dim, self.num_classes))
 
-    def forward(self, s1, s2):
-        u = self.encoder(s1)
-        v = self.encoder(s2)
+    def forward(self, s1, s2, s1_len, s2_len):
+        u = self.encoder(s1, s1_len)
+        v = self.encoder(s2, s2_len)
         feature_vector = torch.cat((u, v, torch.abs(u - v), u * v), dim=1)
         out = self.fc(feature_vector)
         return out

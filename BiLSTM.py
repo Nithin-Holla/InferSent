@@ -13,7 +13,7 @@ class BiLSTM(nn.Module):
         self.embedding.requires_grad = False
         self.encoder = nn.LSTM(embedding_dim, hidden_dim, bidirectional=True)
 
-    def forward(self, sentence):
+    def forward(self, sentence, sentence_len):
         embed = self.embedding(sentence)
         _, (hidden_state, _) = self.encoder(embed)
         hidden_state = torch.cat((hidden_state[0], hidden_state[1]), dim=1)

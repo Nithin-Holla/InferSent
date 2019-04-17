@@ -11,7 +11,7 @@ class AverageBaseline(nn.Module):
         self.embedding.weight.data.copy_(pretrained_vectors)
         self.embedding.requires_grad = False
 
-    def forward(self, sentence):
+    def forward(self, sentence, sentence_len):
         embed = self.embedding(sentence)
-        out = torch.mean(embed, dim=0)
+        out = torch.sum(embed, dim=0) / sentence_len.unsqueeze(1).float()
         return out

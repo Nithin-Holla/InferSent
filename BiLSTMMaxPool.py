@@ -13,7 +13,7 @@ class BiLSTMMaxPool(nn.Module):
         self.embedding.requires_grad = False
         self.encoder = nn.LSTM(embedding_dim, hidden_dim, bidirectional=True)
 
-    def forward(self, sentence):
+    def forward(self, sentence, sentence_len):
         embed = self.embedding(sentence)
         all_states, _ = self.encoder(embed)
         max_out = torch.max(all_states, dim=0)[0]
