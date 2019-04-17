@@ -35,8 +35,8 @@ def train_model():
     glove_vectors = torchtext.vocab.Vectors(name='small_glove.txt', max_vectors=args.glove_size)
 
     train_set, valid_set, _ = torchtext.datasets.SNLI.splits(TEXT, LABEL)
-    train_set.examples = train_set.examples[0:1000]
-    valid_set.examples = valid_set.examples[0:1000]
+    # train_set.examples = train_set.examples[0:1000]
+    # valid_set.examples = valid_set.examples[0:1000]
     TEXT.build_vocab(train_set, valid_set, vectors=glove_vectors)
     LABEL.build_vocab(train_set)
     TEXT.vocab.vectors[TEXT.vocab.stoi['<unk>']] = torch.mean(TEXT.vocab.vectors, dim=0)
