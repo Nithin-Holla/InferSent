@@ -42,7 +42,7 @@ def train_model():
     TEXT.vocab.vectors[TEXT.vocab.stoi['<unk>']] = torch.mean(TEXT.vocab.vectors, dim=0)
     vocab_size = len(TEXT.vocab)
 
-    # Define the iterator over
+    # Define the iterator over the train and valid set
     train_iter, valid_iter = BucketIterator.splits(datasets=(train_set, valid_set),
                                                    batch_sizes=(args.batch_size, args.batch_size),
                                                    sort_key=lambda x: x.premise,
@@ -120,7 +120,9 @@ def train_model():
         torch.save({
             'epoch': epoch,
             'model_state_dict': model.state_dict(),
-            'optimizer_state_dict': optimizer.state_dict()
+            'optimizer_state_dict': optimizer.state_dict(),
+            'text_vocab': TEXT.vocab.stoi,
+            'label_vocab': LABEL.vocab.stoi
         }, checkpoint_file_path)
 
         # If validation accuracy does not improve, divide the learning rate by 5 and

@@ -14,7 +14,8 @@ class SNLIClassifier(nn.Module):
         self.vocab_size = vocab_size
         self.embedding_dim = embedding_dim
         self.embedding = nn.Embedding(vocab_size, embedding_dim)
-        self.embedding.weight.data.copy_(pretrained_vectors)
+        if pretrained_vectors is not None:
+            self.embedding.weight.data.copy_(pretrained_vectors)
         self.embedding.requires_grad = False
         if encoder == 'average':
             self.encoder = AverageBaseline()
