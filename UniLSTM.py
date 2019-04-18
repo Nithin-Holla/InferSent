@@ -13,7 +13,9 @@ class UniLSTM(nn.Module):
         sorted_lengths, sort_indices = torch.sort(sentence_len, descending=True)
         sentence_embed = sentence_embed[:, sort_indices, :]
         packed_seq = pack_padded_sequence(sentence_embed, sorted_lengths, batch_first=False)
-        out, _ = self.encoder(packed_seq)
-        unpacked_out = pad_packed_sequence(out, batch_first=False)
-        final_hidden_state = unpacked_out[0][-1, :, :]
+        all_states, _ = self.encoder(packed_seq)
+        pad_packed_states, _ = pad_packed_sequence(all_states, batch_first=False)
+        _, unsorted_indices = torch.sort(sort_indices)
+        pad_packed_states = pad_packed_states[:, unsorted_indices, :]
+        final_hidden_state = pad_packed_states[sentence_len - 1, range(pad_packed_states.shape[1]), :]
         return final_hidden_state
