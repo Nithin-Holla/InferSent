@@ -7,6 +7,7 @@ import argparse
 from tensorboardX import SummaryWriter
 from SNLIBatchGenerator import SNLIBatchGenerator
 from SNLIClassifier import SNLIClassifier
+from nltk import word_tokenize
 
 # Default parameters
 LEARNING_RATE_DEFAULT = 0.1
@@ -24,12 +25,15 @@ def get_accuracy(scores, true_labels):
 
 def train_model():
     torch.manual_seed(42)
+    torch.cuda.manual_seed(42)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     tb_writer = SummaryWriter(os.path.join('logs', args.model_name))
 
-    tokenize = lambda x: x.split()
-    TEXT = Field(sequential=True, tokenize=tokenize, lower=True, use_vocab=True, batch_first=False, include_lengths=True)
+    # tokenize = lambda x: x.split()
+    TEXT = Field(sequential=True, tokenize=word_tokenize, lower=True, use_vocab=True, batch_first=False, include_lengths=True)
     LABEL = Field(sequential=False, use_vocab=True, pad_token=None, unk_token=None, batch_first=False)
 
     glove_vectors = torchtext.vocab.Vectors(name='small_glove.txt', max_vectors=args.glove_size)
