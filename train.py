@@ -13,7 +13,7 @@ LEARNING_RATE_DEFAULT = 0.1
 BATCH_SIZE_DEFAULT = 64
 MAX_EPOCHS_DEFAULT = 50
 GLOVE_SIZE_DEFAULT = None
-WEIGHT_DECAY_DEFAULT = 0.01
+WEIGHT_DECAY_DEFAULT = 0
 
 
 def get_accuracy(scores, true_labels):
@@ -47,6 +47,7 @@ def train_model():
                                                    batch_sizes=(args.batch_size, args.batch_size),
                                                    sort_key=lambda x: x.premise,
                                                    shuffle=True,
+                                                   sort_within_batch=True,
                                                    device=device)
 
     train_batch_loader = SNLIBatchGenerator(train_iter)
