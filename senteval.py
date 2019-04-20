@@ -73,9 +73,9 @@ def batcher(params, batch):
 
 
 # Set params for SentEval
-params_senteval = {'task_path': DEFAULT_DATA_PATH, 'usepytorch': True, 'kfold': 5}
-params_senteval['classifier'] = {'nhid': 0, 'optim': 'rmsprop', 'batch_size': 128,
-                                 'tenacity': 3, 'epoch_size': 2}
+params_senteval = {'task_path': DEFAULT_DATA_PATH, 'usepytorch': True, 'kfold': 10}
+params_senteval['classifier'] = {'nhid': 0, 'optim': 'adam', 'batch_size': 64,
+                                 'tenacity': 5, 'epoch_size': 4}
 
 # Set up logger
 logging.basicConfig(format='%(asctime)s : %(message)s', level=logging.DEBUG)
