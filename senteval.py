@@ -54,7 +54,7 @@ def batcher(params, batch):
     batch = [sent if sent != [] else ['.'] for sent in batch]
     batch_size = len(batch)
     sent_lengths = [len(sentence) for sentence in batch]
-    sent_lengths = torch.tensor(sent_lengths, dtype=torch.int32).to(params['device'])
+    sent_lengths = torch.LongTensor(sent_lengths).to(params['device'])
     longest_length = torch.max(sent_lengths)
 
     word_embeddings = torch.ones((longest_length, batch_size, params['vectors'].dim)).to(params['device'])
