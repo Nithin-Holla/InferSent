@@ -61,8 +61,12 @@ def batcher(params, batch):
 
     for sent_id, sent in enumerate(batch):
         for word_id, word in enumerate(sent):
-            if word in params['vectors'].stoi:
-                word_embeddings[word_id, sent_id, :] = params['vectors'].vectors[params['vectors'].stoi[word]]
+            if isinstance(word, str):
+                if word in params['vectors'].stoi:
+                    word_embeddings[word_id, sent_id, :] = params['vectors'].vectors[params['vectors'].stoi[word]]
+            elif isinstance(word, bytes):
+                if word.decode('UTF-8') in params['vectors'].stoi:
+                    word_embeddings[word_id, sent_id, :] = params['vectors'].vectors[params['vectors'].stoi[word.decode('UTF-8')]]
             else:
                 word_embeddings[word_id, sent_id, :] = params['unk_vector']
 
