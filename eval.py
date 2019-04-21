@@ -17,13 +17,6 @@ def get_accuracy(scores, true_labels):
     return accuracy
 
 
-def numericalize(data, text_vocab, label_vocab):
-    for example in data:
-        example.premise = [text_vocab[x] if x in text_vocab else 0 for x in example.premise]
-        example.hypothesis = [text_vocab[x] if x in text_vocab else 0 for x in example.hypothesis]
-        example.label = label_vocab[example.label]
-
-
 def eval_model():
     torch.manual_seed(42)
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
