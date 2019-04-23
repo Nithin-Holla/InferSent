@@ -77,9 +77,9 @@ if __name__ == '__main__':
     parser.add_argument('checkpoint_path', type=str,
                         help='Path to save/load the checkpoint data')
     parser.add_argument('input_file', type=str,
-                        help='Input file containing premise-hypothesis pairs')
+                        help='Input JSON file containing premise-hypothesis pairs')
     parser.add_argument('output_file', type=str,
-                        help='Output file to write predictions to')
+                        help='Output JSON file to write predictions to')
     args = parser.parse_args()
 
     infer()

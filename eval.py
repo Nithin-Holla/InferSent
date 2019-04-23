@@ -88,7 +88,7 @@ if __name__ == '__main__':
     parser.add_argument('data_path', type=str,
                         help='Path where data is saved')
     parser.add_argument('--batch_size', type=int, default=BATCH_SIZE_DEFAULT,
-                        help='Batch size for training the model')
+                        help='Batch size for evaluating the model')
     args = parser.parse_args()
 
     eval_model()

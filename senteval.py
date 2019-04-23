@@ -101,7 +101,7 @@ if __name__ == "__main__":
     parser.add_argument('--senteval_path', type=str, default=DEFAULT_SENTEVAL_PATH,
                         help='Path to SentEval repository')
     parser.add_argument('--data_path', type=str, default=DEFAULT_DATA_PATH,
-                        help='Path to SentEval')
+                        help='Path to SentEval data')
     args = parser.parse_args()
 
     se = senteval.engine.SE(params_senteval, batcher, prepare)
