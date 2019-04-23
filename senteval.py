@@ -97,7 +97,7 @@ if __name__ == "__main__":
     parser.add_argument('checkpoint_path', type=str,
                         help='Path to load the model checkpoint')
     parser.add_argument('vector_file', type=str,
-                        help='File im which vectors are saved')
+                        help='File in which vectors are saved')
     parser.add_argument('--senteval_path', type=str, default=DEFAULT_SENTEVAL_PATH,
                         help='Path to SentEval repository')
     parser.add_argument('--data_path', type=str, default=DEFAULT_DATA_PATH,

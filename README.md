@@ -47,7 +47,7 @@ optional arguments:
 positional arguments:
   model_type            Type of encoder for the sentences (one of {biLSTMmaxpool,average,uniLSTM,biLSTM})
   checkpoint_path       Path to load the model checkpoint
-  vector_file           File im which vectors are saved
+  vector_file           File in which vectors are saved
 
 optional arguments:
   -h, --help            show this help message and exit
