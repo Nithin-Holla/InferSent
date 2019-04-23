@@ -23,18 +23,22 @@ sys.path.insert(0, DEFAULT_SENTEVAL_PATH)
 import senteval
 
 
-# SentEval prepare and batcher
+# SentEval prepare function
 def prepare(params, samples):
 
+    # Set device
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
+    # Load the vocabulary
     checkpoint = torch.load(args.checkpoint_path)
     vocab = checkpoint['text_vocab']
     vocab_size = len(vocab)
 
-    glove_vectors = torchtext.vocab.Vectors(name='senteval_glove.txt')
+    # Load the vectors and set the unknown vector
+    glove_vectors = torchtext.vocab.Vectors(name=args.vector_file)
     unk_vector = torch.mean(glove_vectors.vectors, dim=0)
 
+    # Define the model and load it
     model = SNLIClassifier(encoder=args.model_type,
                            vocab_size=vocab_size,
                            embedding_dim=300,
@@ -44,12 +48,14 @@ def prepare(params, samples):
                            pretrained_vectors=None).to(device)
     model.load_state_dict(checkpoint['model_state_dict'])
 
+    # Set params
     params['device'] = device
     params['encoder'] = model.encoder
     params['vectors'] = glove_vectors
     params['unk_vector'] = unk_vector
 
 
+# SentEval batcher function
 def batcher(params, batch):
     batch = [sent if sent != [] else ['.'] for sent in batch]
     batch_size = len(batch)
@@ -90,6 +96,8 @@ if __name__ == "__main__":
                         help='Type of encoder for the sentences')
     parser.add_argument('checkpoint_path', type=str,
                         help='Path to load the model checkpoint')
+    parser.add_argument('vector_file', type=str,
+                        help='File im which vectors are saved')
     parser.add_argument('--senteval_path', type=str, default=DEFAULT_SENTEVAL_PATH,
                         help='Path to SentEval repository')
     parser.add_argument('--data_path', type=str, default=DEFAULT_DATA_PATH,
