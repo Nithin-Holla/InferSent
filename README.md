@@ -1,5 +1,7 @@
 # InferSent
 
+Implementation of Conneau et al, [Supervised Learning of Universal Sentence Representations from Natural Language Inference Data](https://arxiv.org/abs/1705.02364).
+
 ## Training
 
 ```
