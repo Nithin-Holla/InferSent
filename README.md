@@ -2,6 +2,14 @@
 
 Implementation of Conneau et al, [Supervised Learning of Universal Sentence Representations from Natural Language Inference Data](https://arxiv.org/abs/1705.02364).
 
+## Dependencies
+- Python 3
+- PyTorch
+- Torchtext
+- NLTK
+- TensorboardX
+- Scikit-learn
+
 ## Training
 
 ```
