@@ -2,7 +2,8 @@
 
 ## Training
 
-```usage: train.py [-h] [--learning_rate LEARNING_RATE] [--max_epochs MAX_EPOCHS]
+```
+usage: train.py [-h] [--learning_rate LEARNING_RATE] [--max_epochs MAX_EPOCHS]
                 [--batch_size BATCH_SIZE] [--glove_size GLOVE_SIZE]
                 [--weight_decay WEIGHT_DECAY]
                 model_type checkpoint_path
@@ -24,7 +25,8 @@ optional arguments:
 ```
 
 ## Evaluating on the test set
-```usage: eval.py [-h] [--batch_size BATCH_SIZE]
+```
+usage: eval.py [-h] [--batch_size BATCH_SIZE]
                model_type checkpoint_path
                data_path
 
@@ -39,7 +41,8 @@ optional arguments:
 ```
 
 ## Evaluating on SentEval
-```usage: senteval.py [-h] [--senteval_path SENTEVAL_PATH]
+```
+usage: senteval.py [-h] [--senteval_path SENTEVAL_PATH]
                    [--data_path DATA_PATH]
                    model_type checkpoint_path
                    vector_file
@@ -57,7 +60,8 @@ optional arguments:
 
 ## Inference
 
-```usage: infer.py [-h] model_type checkpoint_path
+```
+usage: infer.py [-h] model_type checkpoint_path
                 input_file output_file
 
 positional arguments:
